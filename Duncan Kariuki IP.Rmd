@@ -637,11 +637,22 @@ library(rpart.plot, quietly = TRUE)
 library(rattle, quietly = TRUE)
 ```
 
+Split into features and lables
+
+```{r}
+
+y <- df_num[6]
+x <- df_num[-6]
+
+```
+
+
+
 Predict variables best suited to split our variable
 
 
 ```{r}
-splits_num = apply(X = df_num[-1] , MARGIN = 2, FUN = function(col) {
+splits_num = apply(X = x , MARGIN = 2, FUN = function(col) {
   
   t <- table(df_num$Clicked.on.Ad , col)
   sum(t == 0)
@@ -669,6 +680,172 @@ df_test <- df_num[-train,]
 ```
 
 
+Build Model
+```{r}
+tree <- rpart(Clicked.on.Ad~., data = df_train,  method = "class")
+```
+
+visualize tree
+
+```{r}
+rpart.plot(tree, nn= TRUE)
+```
+Prediction
+
+```{r}
+pred <- predict(object = tree, df_test[-6], type = "class")
+```
+
+Calculating Accuracy
+
+```{r}
+t <- table(df_test$Clicked.on.Ad, pred)
+
+confusionMatrix(t)
+```
+Decision Trees give an accuracy of 95.96% which is very good.
+
+We will try SVM model 
+
+##### Naive Bayes
+Import and Load Libraries
+```{r}
+library(tidyverse)
+library(e1071)
+install.packages('caretEnsemble')
+library(caretEnsemble)
+install.packages('psych')
+library(psych)
+install.packages('randomForest')
+library(randomForest)
+```
+
+
+Create Train and Test Sets
+```{r}
+indxtrain <- createDataPartition(y = df_num$Clicked.on.Ad, p = 0.70, list = FALSE)
+training <- df_num[indxtrain,]
+testing <- df_num[-indxtrain,]
+```
+
+check for dimension of split
+
+```{r}
+prop.table(table(df_num$Clicked.on.Ad))* 100
+prop.table(table(training$Clicked.on.Ad))* 100
+prop.table(table(testing$Clicked.on.Ad))* 100
+```
+The class are evenly distributed across the setd
+
+Dividing into Features and Labels
+```{r}
+
+x = training[, -6]
+y = training$Clicked.on.Ad
+       
+```
+
+
+Building the Model
+```{r}
+
+model = train(x,as.factor(y),'nb',trControl=trainControl(method='cv',number=10))
+model
+```
+
+Display model performance
+
+```{r}
+model
+```
+
+Model Evaluation
+
+```{r}
+#Model Evaluation
+#Predict testing set
+Predict <- predict(model,newdata = testing ) 
+
+
+```
+
+confusion Matrix
+```{r}
+
+t <- table(testing$Clicked.on.Ad, Predict)
+
+confusionMatrix(t)
+```
+The Model has an accuracy of of 95.95% which is the same as the accuracy for Decision Trees
+
+##### KNN
+
+We scale our data
+
+```{r}
+# We define a normal function which will normalize the set of values according to its minimum value and maximum value.
+normal <- function(x) (
+  return( ((x - min(x)) /(max(x)-min(x))) )
+)
+normal(1:6)
+df_num_new <- as.data.frame(lapply(df_num, normal))
+summary(df_num_new)
+
+```
+
+Lets now create test and train data sets
+
+```{r}
+
+indxtrain <- createDataPartition(y = df_num$Clicked.on.Ad, p = 0.70, list = FALSE)
+training <- df_num_new[indxtrain,]
+testing <- df_num_new[-indxtrain,]
+
+```
+
+
+```{r}
+prop.table(table(df_num$Clicked.on.Ad))* 100
+prop.table(table(training$Clicked.on.Ad))* 100
+prop.table(table(testing$Clicked.on.Ad))* 100
+```
+Clases are evenly distributed
+
+Dividing into test and train test
+```{r}
+
+x_train <- training[, -6]
+y_train <- as.factor(training[, 6])
+x_test <- testing[, -6]
+y_test <- as.factor(testing[, 6])
+
+```
+
+```{r}
+# Running the knn function
+
+library(class)
+pr <- knn(x_train,x_test,cl=y_train,k=20)
+
+```
+
+
+Calculating Accuacy
+```{r}
+# Creating the confucion matrix
+tb <- table(pr,y_test)
+ 
+# Checking the accuracy
+accuracy <- function(x){sum(diag(x)/(sum(rowSums(x)))) * 100}
+print(accuracy(tb))
+tb
+```
+Has an accuracy of 95.28
+
+From our analysis all models performed pretty well with Decison trees giving an accuracy of 95.96% misclassifying 8 click and 4 no click, Naive Bayes also performed well with an accuracy of 95.96% misclassifying 7 click and 5 no click, finally KNN performed well but slightly below the other two models giving an accuracy of 95.28% misclassifying 0 click and 14 no click. 
+
+We will hence pick the Decision Model since it will be easy to explain our results using tree visuals and it has a very high accuracy.
+
 ## RECOMMENDATIONS
 
 Following our analysis the following recommendations were made:
@@ -681,6 +858,7 @@ Following our analysis the following recommendations were made:
 
 4. The above recommendations should be stressed more in counties such as Croatia , Gabon and Bolivia as they have the lowest advertisement clicks.
 
+5. We recommend the use of Decision Trees model to predict if a person visiting the site in the future will click in the advertisement or not since it will be easy to explain our results using tree visuals and it has a very high accuracy.
 
 ## EVALUATION
 
