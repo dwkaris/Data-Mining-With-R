@@ -132,6 +132,7 @@ Check Number of Columns Present
 
 colnames(dt)
 ```
+our dataset has 18 columns
 
 shows the data types of the data frame
 
@@ -141,6 +142,7 @@ glimpse(dt)
 ```
 
 Our dataset has 14 numerical variables 2 categorical variable and 2 boolean variable.
+
 
 Check summary of our dataset
 
@@ -153,9 +155,12 @@ pander(summ)
 ```
 This give of every variable there mean, max,min, datatype and quantiles
 
+
 ## External Data Source Validation
 
 Making sure your data matches something outside of the dataset is very important. It allows you to ensure that the measurements are roughly in line with what they should be and it serves as a check on what other things might be wrong in your dataset. External validation can often be as simple as checking your data against a single number, as we will do here.
+
+
 
 
 ## Tidying the Dataset
@@ -176,9 +181,8 @@ colSums(is.na(dt_complete))
 dim(dt_complete)
 ```
 
-Outlier detection and dealing with outliers
 
-Convert categorical column
+Convert boolean column to numerical 
 
 ```{r}
 
@@ -188,6 +192,7 @@ sapply(dt_complete, class)
 
 
 ```
+
 check for duplicated values
 ```{r}
 #  check for duplicated values
@@ -198,9 +203,10 @@ duplicated_rows <- dt_complete[duplicated(dt_complete),]
 dt_complete <- unique(dt_complete)
 dim(dt_complete)
 ```
+Our dataset had 117 duplicated columns hence we have droped them
 
 
-Select only the numerical columns
+Select only the numerical columns hence droping the redudant character columns
 
 ```{r}
 
@@ -214,6 +220,7 @@ head(dt_num)
 ```{r}
 colnames(dt_num)
 ```
+We will now havw 16 columns for analysis
 
 
 Set our outcome to categorical
@@ -226,6 +233,19 @@ dt_num$Revenue <- factor(dt_num$Revenue)
 ## Explanatory data analysis
 
 ### Univariate analysis And Bivariate Distribution
+
+
+Visualize our target
+
+```{r, fig.height= 5, fig.width= 10}
+
+# Count our clicks
+
+ggplot(dt_num) + geom_bar(aes(x = Revenue),fill = 'orange')
+
+```
+Our dataset has False Than True values in the Revenue variable
+
 
 
 A display of our categorical variables vs Revenue
@@ -256,6 +276,25 @@ ggplot(dt_num , mapping = aes(x = TrafficType, color = Revenue )) +
 ggplot(dt_num , mapping = aes(x = Weekend, color = Revenue )) +
          geom_freqpoly() + labs(title = "Weekend Distribution by Revenue")
 ```
+Administrative  by Revenue 
+Both categories of revenue have there peaks at zero with False having more imputes than True
+
+Informational Distribution by Revenue
+Both categories of revenue have there peaks at zero with False having more imputes than True
+
+SpecialDay Distribution by Revenue
+Both categories of revenue have there peaks at zero when its not a special day with False having more imputes than True.
+
+OperatingSystems Distribution by Revenue
+Both categories of revenue have there peaks at Operating system 2, follwed by 3,1, 4 respectively with False having more imputes than True.
+
+Browser Distribution by Revenue
+Both categories of revenue have there peaks at Browser distribution 2, with False having more imputes than True.
+
+Weekend Distribution by Revenue
+Both categories of revenue have there peaks when its not a weekend, with False having more imputes than True.
+
+
 
 A display of our continuous variables vs Revenue
 
@@ -278,7 +317,7 @@ P <- ggplot(dt_num , mapping = aes(x = ProductRelated_Duration,fill = Revenue , 
 P + theme_bw()
 
 B <- ggplot(dt_num , mapping = aes(x = BounceRates,fill = Revenue , color = Revenue )) +
-         geom_histogram() + labs(title = "BounceRates Distribution by  Revenue")
+         geom_histogram() + labs(title = "Bounce Rates Distribution by  Revenue")
 B + theme_bw()
 
 E <- ggplot(dt_num , mapping = aes(x = ExitRates ,fill = Revenue , color = Revenue )) +
@@ -291,6 +330,29 @@ V + theme_bw()
 
 
 ```
+Administrative_Duration Distribution by  Revenue
+Its skewed towards the left with both categories of revenue have there peaks at zero with False having more imputes than True.
+
+Informational_Duration Distribution by  Revenue
+Its skewed towards the left with both categories of revenue have there peaks at zero with False having more imputes than True
+
+ProductRelated Distribution by  Revenue
+Its skewed towards the left with both categories of revenue have there peaks close to zero with False having more imputes than True
+
+ProductRelated_Duration Distribution by  Revenue
+Its skewed towards the left with both categories of revenue have there peaks close to zero with False having more imputes than True
+
+
+Bounce Rates Distribution by  Revenue
+Its skewed towards the left with both categories of revenue have there peaks close to zero with False having more imputes than True
+
+ExitRates Distribution by  Revenue
+Its skewed towards the left with both categories of revenue have there peaks close to zero with False having more imputes than True
+
+PageValues Distribution by  Revenue
+Its skewed towards the left with both categories of revenue have there peaks close to zero with False having more imputes than True
+
+
 
 find correlation between columns
 
@@ -306,6 +368,7 @@ corr
 
 ```
 
+
 Create a correlation plot
 
 ```{r, fig.height=10, fig.width= 10}
@@ -313,9 +376,6 @@ Create a correlation plot
 corrplot(res$r,  order = "hclust", 
          tl.col = "black", tl.srt = 45)
 ```
-
-Feature selection 
-
 
 ```{r}
 
@@ -325,6 +385,15 @@ rownames(rev) <- colnames(corr)
 
 rev
 ```
+Of all our variables PageValues, ProductRelated, and Administrative have the closest relationship to our target variable.
+
+
+
+##Implimenting the Solution
+
+
+###Feature selection 
+
 
 We will only pick variables with a positive correlation as this are the ones that will improve our model
 
@@ -338,11 +407,19 @@ head(df)
 
 
 
-##Implimenting the Solution
 
 ###Modeling Data Using K-Means Clustering
 
-scale our dataframe
+We will assign a variable to our categorical variable
+
+```{r}
+target <- dt_num$Revenue
+
+```
+
+
+
+scale our Features dataframe
 
 ```{r}
 # We define a normal function which will normalize the set of values according to its minimum value and maximum value.
@@ -354,30 +431,49 @@ df_scaled <- as.data.frame(lapply(df, normal))
 summary(df_scaled)
 
 ```
-Kmeans with 3 centers
-```{r}
 
-
-set.seed(123)
-final <- kmeans(df_scaled, centers = 3, nstart = 25)
-print(final)
-```
-Kmeans with 4 centers
+Applying the K-means clustering algorithm with no. of centroids(k)=3
 
 ```{r}
-set.seed(123)
-final4 <- kmeans(df_scaled, centers = 4, nstart = 25)
-print(final4)
-```
-```{r}
-set.seed(123)
-final7 <- kmeans(df_scaled, centers = 7, nstart = 25)
-print(final7)
+result<- kmeans(df_scaled,3) 
+
 ```
 
+Previewing the no. of records in each cluster
+
 ```{r}
-df_scaled  %>% mutate(cluster = final$cluster) %>% group_by(cluster) %>% summarize_all("median")
+result$size
 ```
+
+Getting the value of cluster center datapoint value(3 centers for k=3)
+
+```{r}
+result$centers 
+```
+
+Getting the cluster vector that shows the cluster where each record falls
+
+```{r}
+head(result$cluster)
+tail(result$cluster)
+```
+
+Visualizing diffrent variables the  clustering results
+
+```{r}
+par(mfrow = c(1,2), mar = c(5,4,2,2))
+
+plot(df_scaled[,1:2], col = result$cluster) 
+plot(df_scaled[,3:4], col = result$cluster) 
+```
+
+Verifying the results of clustering
+
+```{r}
+table(result$cluster, target)
+```
+The output above shows the distribution of diffrent clusters across diffrent variables
+
 
 
 HIERACHIAL CLUSTERING
@@ -402,7 +498,7 @@ plot(hclust_avg)
 Use cut trees function to cut the tree
 
 ```{r}
-cut_avg <- cutree(hclust_avg, k=3)
+cut_avg <- cutree(hclust_avg, k=2)
 ```
 
 
@@ -426,27 +522,61 @@ Visualize dendogram trees
 
 ```{r}
 avg_dend_obj <- as.dendrogram(hclust_avg)
-avg_col_dend <- color_branches(avg_dend_obj, k= 4)
+avg_col_dend <- color_branches(avg_dend_obj, k= 3)
 plot(avg_col_dend)
 ```
 Append dendogram in original dataframe
 
 ```{r}
+
 suppressPackageStartupMessages(library(dplyr))
 df_cf <- mutate(df, cluster = cut_avg)
 count(df_cf, cluster)
-df_cf
+
 ```
-```
+
+
 
 ## Challenging the solution
 
+From our analysis K-means clustering out performed the Hierarchical clustrering as it was able to cluster our features to 3 distinct groups as we had defined in our model 
 
+Advantages of K- means Clustering
+
+* Easy to implement 
+* With a large number of variables, K-Means may be computationally faster than hierarchical clustering (if K is small). 
+* k-Means may produce Hghter clusters than hierarchical clustering 
+* An instance can change cluster (move to another cluster) when the centroids are recomputed. 
+
+
+Disadvantages of K- means Clustering
+
+* Difficult to predict the number of clusters (K-Value) 
+* Initial seeds have a strong impact on the final results 
+* The order of the data has an impact on the final results 
+* Sensitive to scale: rescaling your datasets (normalization or standardization) will completely change results. 
+
+Advantages of Hierarchical Clustering
+
+* We do not need to specify the number of clusters required for the algorithm.
+Hierarchical clustering outputs a hierarchy, ie a structure that is more informative than the unstructured  
+
+* set of flat clusters returned by k-means.
+
+* It is also easy to implement.
+
+
+Disadvantages  of Hierarchical Clustering
+
+* There is no mathematical objective for Hierarchical clustering.
+
+* All the approaches to calculate the similarity between clusters has its own disadvantages.
+
+* High space and time complexity for Hierarchical clustering. Hence this clustering algorithm cannot be used when we have huge data.
 
 
 
 ##Follow up questions
-
 
 At this point, we can refine our question or collect new data, all in an iterative process to get at the truth.
 
@@ -468,3 +598,4 @@ c). Did we have the right question?
 yes
 
 We were able to make conclusion from our data
+
